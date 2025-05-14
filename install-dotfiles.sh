@@ -30,7 +30,7 @@ fi
 
 # Clone your dotfiles repository (replace with your actual GitHub URL)
 echo "Cloning dotfiles from GitHub..."
-git clone https://github.com/yourusername/your-dotfiles-repo.git ~/.dotfiles
+git clone https://github.com/Reep007/.dotfiles.git
 
 # Install official Arch Linux packages
 echo "Installing official Arch Linux packages..."
