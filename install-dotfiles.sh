@@ -27,7 +27,7 @@ fi
 info "Installing official Arch Linux packages..."
 sudo pacman -S --noconfirm \
   hyprland waybar hyprpaper kitty zsh zsh-completions btop \
-  thunar thunar-archive-plugin tumbler rofi wofi dunst python-pywal \
+  thunar thunar-archive-plugin tumbler rofi wofi dunst python-pywal xdg-user-dirs \
   papirus-icon-theme qt5ct kvantum networkmanager network-manager-applet \
   polkit-gnome brightnessctl pipewire pipewire-pulse wireplumber pavucontrol \
   bluez bluez-utils mpv firefox neovim ttf-jetbrains-mono-nerd playerctl wl-clipboard grim slurp \
@@ -41,10 +41,6 @@ xdg-user-dirs-update
 info "Installing AUR packages via yay..."
 yay -S --noconfirm \
   oh-my-posh-bin nordic-theme-git themix-gui-git themix-theme-oomox-git themix-icons-papirus-git
-
-# Clone your dotfiles repository
-info "Cloning dotfiles from GitHub..."
-git clone https://github.com/Reep007/.dotfiles.git ~/.dotfiles
 
 # Apply dotfiles using stow
 info "Applying dotfiles using stow..."
