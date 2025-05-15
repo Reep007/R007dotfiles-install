@@ -28,24 +28,19 @@ info "Installing official Arch Linux packages..."
 sudo pacman -S --noconfirm \
   hyprland waybar hyprpaper kitty zsh zsh-completions btop \
   thunar thunar-archive-plugin tumbler rofi wofi dunst python-pywal xdg-user-dirs \
-  papirus-icon-theme qt5ct kvantum networkmanager network-manager-applet \
-  polkit-gnome brightnessctl pipewire pipewire-pulse wireplumber pavucontrol \
-  bluez bluez-utils mpv firefox neovim ttf-jetbrains-mono-nerd playerctl wl-clipboard grim slurp \
-  stow
+  papirus-icon-theme qt5ct network-manager-applet \
+  pipewire pipewire-pulse wireplumber pavucontrol \
+  bluez bluez-utils mpv firefox nano ttf-jetbrains-mono-nerd playerctl wl-clipboard grim slurp
 
 # Create standard XDG user directories (Documents, Downloads, Pictures, etc.)
 info "Creating standard XDG user directories..."
-xdg-user-dirs-update
+xdg-user-dirs-update --force
 
 # Install AUR packages
 info "Installing AUR packages via yay..."
 yay -S --noconfirm \
-  oh-my-posh-bin nordic-theme-git themix-gui-git themix-theme-oomox-git themix-icons-papirus-git
+  oh-my-posh-bin nordic-theme-git themix-gui-git themix-theme-oomox-git
 
-# Apply dotfiles using stow
-info "Applying dotfiles using stow..."
-cd ~/.dotfiles
-stow */
 
 # Set Zsh as the default shell for the current user
 if [[ "$SHELL" != "/bin/zsh" ]]; then
