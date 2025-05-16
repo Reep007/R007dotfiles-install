@@ -26,11 +26,11 @@ fi
 # Install official Arch Linux packages
 info "Installing official Arch Linux packages..."
 sudo pacman -S --noconfirm \
-  hyprland waybar hyprpaper kitty zsh zsh-completions btop \
+  hyprland waybar hyprpaper python kitty zsh zsh-completions btop python-pillow python tk \
   thunar thunar-archive-plugin tumbler rofi wofi dunst python-pywal xdg-user-dirs \
   papirus-icon-theme qt5ct network-manager-applet \
   pipewire pipewire-pulse wireplumber pavucontrol \
-  bluez bluez-utils mpv firefox nano ttf-jetbrains-mono-nerd playerctl wl-clipboard grim slurp
+  bluez bluez-utils mpv firefox nano ttf-jetbrains-mono-nerd wl-clipboard grim slurp
 
 # Create standard XDG user directories (Documents, Downloads, Pictures, etc.)
 info "Creating standard XDG user directories..."
@@ -40,6 +40,12 @@ xdg-user-dirs-update --force
 info "Installing AUR packages via yay..."
 yay -S --noconfirm \
   oh-my-posh-bin nordic-theme-git themix-gui-git themix-theme-oomox-git
+
+# Clone dotfiles
+info "Cloning dotfiles from GitHub..."
+git clone https://github.com/Reep007/.dotfiles.git ~/.dotfiles
+git clone https://github.com/zsh-users/zsh-autosuggestions ~/.zsh/zsh-autosuggestions
+git clone https://github.com/zsh-users/zsh-syntax-highlighting ~/.zsh/zsh-syntax-highlighting
 
 
 # Set Zsh as the default shell for the current user
@@ -51,7 +57,5 @@ fi
 # Enable necessary systemd services
 info "Enabling systemd services..."
 sudo systemctl enable NetworkManager
-sudo systemctl enable bluetooth
-sudo systemctl enable --now pipewire pipewire-pulse wireplumber
 
 info "✅ Setup complete! Please reboot or log out and log back in to apply all changes."
