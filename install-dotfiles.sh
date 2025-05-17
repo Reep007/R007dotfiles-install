@@ -30,7 +30,7 @@ sudo pacman -S --noconfirm \
   thunar thunar-archive-plugin tumbler wofi dunst python-pywal xdg-user-dirs \
   qt5ct network-manager-applet pavucontrol jq nodejs npm \
   gvfs gvfs-mtp gvfs-smb gvfs-nfs gvfs-gphoto2 gvfs-afc \
-  mpv nano ttf-jetbrains-mono-nerd wl-clipboard grim slurp
+  mpv nano ttf-jetbrains-mono-nerd wl-clipboard grim slurp fd
 
 # Create standard XDG user directories (Documents, Downloads, Pictures, etc.)
 info "Creating standard XDG user directories..."
@@ -39,7 +39,7 @@ xdg-user-dirs-update --force
 # Install AUR packages
 info "Installing AUR packages via yay..."
 yay -S --noconfirm \
-  brave-bin oh-my-posh nordic-theme-git themix-gui-git themix-theme-oomox-git
+  brave-bin wal-gtk oh-my-posh nordic-theme-git themix-gui-git themix-theme-oomox-git
 
 # Clone dotfiles
 info "Cloning dotfiles from GitHub..."
