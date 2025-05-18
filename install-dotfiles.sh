@@ -28,7 +28,7 @@ info "Installing official Arch Linux packages..."
 sudo pacman -S --noconfirm \
   hyprland waybar hyprpaper python kitty lsd zsh zsh-completions btop python-pillow python tk \
   thunar thunar-archive-plugin tumbler wofi rofi dunst python-pywal xdg-user-dirs \
-  qt5ct network-manager-applet pavucontrol jq nodejs npm \
+  qt5ct network-manager-applet pavucontrol jq nodejs npm pacman-contrib \
   gvfs gvfs-mtp gvfs-smb gvfs-nfs gvfs-gphoto2 gvfs-afc \
   mpv nano ttf-jetbrains-mono-nerd wl-clipboard grim slurp fd
 
