@@ -26,10 +26,10 @@ fi
 # Install official Arch Linux packages
 info "Installing official Arch Linux packages..."
 sudo pacman -S --noconfirm \
-  hyprland waybar hyprpaper python kitty lsd zsh zsh-completions btop python-pillow python tk \
+  hyprland waybar hyprpaper python xdg-desktop-portal-hyprland kitty lsd zsh zsh-completions btop python-pillow python tk \
   thunar thunar-archive-plugin tumbler wofi rofi dunst python-pywal xdg-user-dirs \
-  qt5ct network-manager-applet pavucontrol jq nodejs npm pacman-contrib \
-  gvfs gvfs-mtp gvfs-smb gvfs-nfs gvfs-gphoto2 gvfs-afc polkit polkit-gnome \
+  qt5ct network-manager-applet pavucontrol jq nodejs npm pacman-contrib xf86-video-amdgpu \
+  gvfs gvfs-mtp gvfs-smb gvfs-nfs gvfs-gphoto2 gvfs-afc polkit polkit-gnome nvidia nvidia-utils \
   mpv nano ttf-jetbrains-mono-nerd wl-clipboard grim slurp fd
 
 # Create standard XDG user directories (Documents, Downloads, Pictures, etc.)
