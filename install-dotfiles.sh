@@ -43,10 +43,9 @@ yay -S --noconfirm \
 
 # Clone dotfiles
 info "Cloning dotfiles from GitHub..."
-git clone https://github.com/Reep007/.dotfiles.git ~/.dotfiles
 git clone https://github.com/zsh-users/zsh-autosuggestions ~/.zsh/zsh-autosuggestions
 git clone https://github.com/zsh-users/zsh-syntax-highlighting ~/.zsh/zsh-syntax-highlighting
-
+git clone https://github.com/Reep007/.dotfiles.git ~/.dotfiles
 
 # Set Zsh as the default shell for the current user
 if [[ "$SHELL" != "/bin/zsh" ]]; then
