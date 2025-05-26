@@ -27,10 +27,10 @@ fi
 info "Installing official Arch Linux packages..."
 sudo pacman -S --noconfirm \
   hyprland waybar hyprpaper python xdg-desktop-portal-hyprland kitty lsd zsh zsh-completions btop python-pillow python tk \
-  thunar thunar-archive-plugin tumbler wofi rofi dunst python-pywal xdg-user-dirs gtk3 \
+  thunar thunar-archive-plugin tumbler wofi rofi dunst python-pywal python-gobject xdg-user-dirs gtk3 \
   qt5ct network-manager-applet pavucontrol jq nodejs npm pacman-contrib xf86-video-amdgpu \
   gvfs gvfs-mtp gvfs-smb gvfs-nfs gvfs-gphoto2 gvfs-afc polkit polkit-gnome nvidia nvidia-utils \
-  mpv nano ttf-jetbrains-mono-nerd wl-clipboard grim slurp fd
+  mpv nano ttf-jetbrains-mono-nerd wl-clipboard grim slurp fd lxappearance
 
 # Create standard XDG user directories (Documents, Downloads, Pictures, etc.)
 info "Creating standard XDG user directories..."
@@ -39,7 +39,7 @@ xdg-user-dirs-update --force
 # Install AUR packages
 info "Installing AUR packages via yay..."
 yay -S --noconfirm \
-  brave-bin wal-gtk oh-my-posh nordic-theme-git themix-gui-git themix-theme-oomox-git
+  brave-bin wal-gtk pavucontrol-gtk3 oh-my-posh nordic-theme-git themix-gui-git themix-theme-oomox-git wpgtk-git
 
 # Clone dotfiles
 info "Cloning dotfiles from GitHub..."
