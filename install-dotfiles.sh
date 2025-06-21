@@ -14,7 +14,7 @@ error() {
 # Ensure yay is installed
 if ! command -v yay &> /dev/null; then
   info "yay not found. Installing yay..."
-  sudo pacman -S --needed git base-devel
+  sudo pacman -S --noconfirm --needed git base-devel
   git clone https://aur.archlinux.org/yay.git /tmp/yay
   pushd /tmp/yay
   makepkg -si --noconfirm
