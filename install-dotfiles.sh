@@ -39,7 +39,7 @@ xdg-user-dirs-update --force
 # Install AUR packages
 info "Installing AUR packages via yay..."
 yay -S --noconfirm \
-  brave-bin wal-gtk pavucontrol-gtk3 nordic-theme-git themix-gui-git themix-theme-oomox-git wpgtk-git
+  brave-bin wal-gtk pavucontrol-gtk3 oh-my-posh nordic-theme-git themix-gui-git themix-theme-oomox-git wpgtk-git
 
 # Clone dotfiles
 info "Cloning dotfiles from GitHub..."
