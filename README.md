@@ -9,8 +9,7 @@ The install will pull in my R007-dotfiles
 
 Does not use symlink just copy and replace into the main folders
 
-
 You can find a how to install and use on my Youtube https://www.youtube.com/@reep0074
 
-Note: If you have Arch install with hyprland already and you know what you are doing 
-you can just pull git clone https://github.com/Reep007/R007-dotfiles.git
+Note: If you have Arch install with hyprland already you can just pull 
+git clone https://github.com/Reep007/R007-dotfiles.git
