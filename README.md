@@ -1,6 +1,6 @@
 USE:  git clone https:/github.com/Reep007/R007dotfiles-install.git
 
-cd into R007dotfiles then cd into install-dotfiles.sh
+cd into R007dotfiles
 
 RUN: chmod +x install-dotfiles.sh
 
