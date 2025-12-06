@@ -11,16 +11,21 @@ error() {
   echo -e "\033[1;31m[ERROR]\033[0m $1"
 }
 
-# Ensure yay is installed
-if ! command -v yay &> /dev/null; then
-  info "yay not found. Installing yay..."
+# Ensure paru is installed
+if ! command -v paru &> /dev/null; then
+  info "paru not found. Installing paru..."
   sudo pacman -S --noconfirm --needed git base-devel
-  git clone https://aur.archlinux.org/yay.git /tmp/yay
-  pushd /tmp/yay
+
+  # Clone to /tmp to keep system clean
+  pushd /tmp
+  git clone https://aur.archlinux.org/paru.git
+  cd paru
+
   makepkg -si --noconfirm
+
   popd
 else
-  info "yay is already installed"
+  info "paru is already installed"
 fi
 
 # Install official Arch Linux packages
