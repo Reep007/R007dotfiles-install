@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # R007-dotfiles — Ultimate One-Command Rice Installer
-# Hyprland + Pywal + Full Theming + Optional ZenForge (source only)
+# Hyprland + Pywal + Full Theming + ZenForge (source only)
 # https://github.com/Reep007/R007-dotfiles
 
 set -euo pipefail
@@ -13,23 +13,35 @@ error()   { echo -e "\033[1;31m[ERROR]\033[0m  $*"; exit 1; }
 
 [[ -f /etc/arch-release ]] || error "This script only works on Arch Linux!"
 
-# Keep sudo alive during the whole process
+# Keep sudo timestamp alive
 sudo -v
 ( while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done ) 2>/dev/null &
 
-# paru AUR helper
+# ──────────────────────────────────────────────────────────────
+# 1. paru AUR helper
+# ──────────────────────────────────────────────────────────────
 if ! command -v paru &>/dev/null; then
   info "Installing paru AUR helper..."
   sudo pacman -Sy --noconfirm --needed base-devel git
   tmpdir=$(mktemp -d); trap 'rm -rf "$tmpdir"' EXIT
   git clone https://aur.archlinux.org/paru.git "$tmpdir/paru"
-  cd "$tmpdir/paru" && makepkg --syncdeps --install --noconfirm
+  cd "$tmpdir/paru"
+  makepkg --syncdeps --install --noconfirm --needed
   success "paru installed"
 else
   info "paru already available"
 fi
 
-# Official packages
+# ──────────────────────────────────────────────────────────────
+# 2. Update keyring + full system upgrade (prevents 99% of failures)
+# ──────────────────────────────────────────────────────────────
+info "Updating system + keyring (this fixes most install issues)..."
+sudo pacman -Sy --noconfirm archlinux-keyring
+sudo pacman -Syu --noconfirm
+
+# ──────────────────────────────────────────────────────────────
+# 3. Official packages (loud so you see progress)
+# ──────────────────────────────────────────────────────────────
 info "Installing official packages..."
 batches=(
   "hyprland waybar hyprpaper swww kitty hypridle hyprlock"
@@ -43,36 +55,46 @@ batches=(
 )
 
 for pkgs in "${batches[@]}"; do
-  sudo pacman -S --noconfirm --needed $pkgs >/dev/null 2>&1 || true
+  echo -e "\033[1;36mInstalling:\033[0m $pkgs"
+  sudo pacman -S --noconfirm --needed $pkgs || warn "Some packages skipped in this batch"
 done
+success "Official packages installed"
 
-# AUR packages
+# ──────────────────────────────────────────────────────────────
+# 4. AUR packages (also visible)
+# ──────────────────────────────────────────────────────────────
 info "Installing AUR packages..."
 for pkg in brave-bin nordic-theme-git wpgtk-git themix-full-git oh-my-posh; do
-  paru -S --noconfirm --needed "$pkg" >/dev/null 2>&1 || warn "Failed: $pkg"
+  echo -e "\033[1;36mBuilding AUR package:\033[0m $pkg"
+  paru -S --noconfirm --needed --skipreview "$pkg" || warn "Failed/skipped: $pkg"
 done
+success "AUR packages done"
 
-# Zsh plugins
-info "Setting up Zsh plugins..."
+# ──────────────────────────────────────────────────────────────
+# 5. Zsh plugins + dotfiles
+# ──────────────────────────────────────────────────────────────
+info "Setting up Zsh plugins and dotfiles..."
 xdg-user-dirs-update --force >/dev/null 2>&1
 mkdir -p "$HOME/.zsh"
+
 for p in zsh-autosuggestions zsh-syntax-highlighting; do
   [[ -d "$HOME/.zsh/$p" ]] || git clone --quiet --depth 1 "https://github.com/zsh-users/$p" "$HOME/.zsh/$p"
 done
 
-# Pull your beautiful dotfiles
-info "Applying R007 dotfiles..."
 [[ -d "$HOME/R007-dotfiles" ]] || git clone --depth 1 https://github.com/Reep007/R007-dotfiles.git "$HOME/R007-dotfiles"
-rsync -a --delete "$HOME/R007-dotfiles/.config/" "$HOME/.config/" >/dev/null 2>&1
-rsync -a --delete "$HOME/R007-dotfiles/.local/"  "$HOME/.local/"  >/dev/null 2>&1
-success "Dotfiles applied"
+
+rsync -a --delete "$HOME/R007-dotfiles/.config/" "$HOME/.config/" 2>/dev/null || true
+rsync -a --delete "$HOME/R007-dotfiles/.local/"  "$HOME/.local/"  2>/dev/null || true
+success "R007 dotfiles applied"
 
 # Shell + services
 [[ "$SHELL" == */zsh ]] || chsh -s "$(which zsh)" "$USER"
 sudo systemctl enable --now NetworkManager sddm >/dev/null 2>&1
 
-# Pull ZenForge source (no compile, no install — just ready when you want it)
-info "Pulling ZenForge system manager (source only)..."
+# ──────────────────────────────────────────────────────────────
+# 6. Pull ZenForge source only (no compile)
+# ──────────────────────────────────────────────────────────────
+info "Pulling ZenForge system manager (source code only)..."
 if [[ -d "$HOME/ZENFORGE" ]]; then
   (cd "$HOME/ZENFORGE" && git pull --quiet --ff-only) >/dev/null 2>&1
   success "ZENFORGE directory updated"
@@ -81,21 +103,23 @@ else
   success "ZENFORGE cloned to ~/ZENFORGE"
 fi
 
-# Final banner
+# ──────────────────────────────────────────────────────────────
+# Final beautiful banner
+# ──────────────────────────────────────────────────────────────
 clear
 cat << "EOF"
 
 ╔══════════════════════════════════════════════════════════╗
 ║                                                          ║
-║        R007 Rice + ZenForge — Installation Complete!     ║
+║        R007 Rice — Installation Complete!              ║
 ║                                                          ║
-║    • All dotfiles applied                                ║
-║    • Hyprland + full theming ready                       ║
+║    • Hyprland + full theming installed                   ║
+║    • Dotfiles applied                                    ║
 ║    • SDDM will start on next boot                        ║
 ║                                                          ║
-║    ZenForge is waiting in ~/ZENFORGE                     ║
-║    → When you want generations/rollbacks/snapshots:      ║
-║         cd ~/ZENFORGE && cargo install --path . --locked ║
+║    ZenForge is ready in ~/ZENFORGE                       ║
+║    → To activate generations/rollbacks/snapshots:        ║
+║         cd ~/ZENFORGE && cargo install --path .         ║
 ║         zenforge switch                                  ║
 ║                                                          ║
 ╚══════════════════════════════════════════════════════════╝
