@@ -24,30 +24,23 @@ else
   info "paru is already installed"
 fi
 
-# Official packages
-info "Installing official packages..."
+# Official + AUR packages (your exact list)
+info "Installing packages..."
 batches=(
-  "hyprland waybar hyprpaper swww kitty hypridle hyprlock"
-  "wofi dunst grim slurp wl-clipboard cliphist xdg-user-dirs"
-  "thunar thunar-archive-plugin tumbler gvfs gvfs-mtp gvfs-smb"
+  "hyprland waybar hyprpaper swww kitty hypridle hyprlock wofi dunst grim slurp wl-clipboard cliphist xdg-user-dirs thunar thunar-archive-plugin tumbler gvfs gvfs-mtp gvfs-smb"
   "nwg-look qt5ct kvantum qt5-wayland qt6-wayland xdg-desktop-portal-hyprland xdg-desktop-portal-gtk"
-  "ttf-jetbrains-mono-nerd lsd btop"
-  "python python-pillow python-pywal python-gobject tk"
-  "network-manager-applet polkit-gnome mpv nano obsidian jq nodejs npm pacman-contrib zsh zsh-completions"
-  "sddm"
+  "ttf-jetbrains-mono-nerd lsd btop python python-pillow python-pywal python-gobject tk imagemagick papirus-icon-theme"
+  "network-manager-applet polkit-gnome mpv nano obsidian jq nodejs npm pacman-contrib zsh zsh-completions sddm"
 )
 
 for pkgs in "${batches[@]}"; do
-  sudo pacman -S --noconfirm --needed $pkgs || warn "Some packages in this batch failed"
+  sudo pacman -S --noconfirm --needed $pkgs || true
 done
 
-# AUR
-info "Installing AUR packages..."
-for pkg in brave-bin nordic-theme-git wpgtk-git themix-full-git oh-my-posh; do
-  paru -S --noconfirm --needed "$pkg" || warn "AUR package failed: $pkg"
-done
+paru -S --noconfirm --needed brave-bin nordic-theme-git wpgtk-git themix-full-git oh-my-posh || true
 
 # Zsh plugins & dotfiles
+info "Setting up dotfiles and shell..."
 xdg-user-dirs-update --force >/dev/null 2>&1
 mkdir -p "$HOME/.zsh"
 for p in zsh-autosuggestions zsh-syntax-highlighting; do
@@ -55,19 +48,27 @@ for p in zsh-autosuggestions zsh-syntax-highlighting; do
 done
 
 [[ -d "$HOME/R007-dotfiles" ]] || git clone https://github.com/Reep007/R007-dotfiles.git "$HOME/R007-dotfiles"
-rsync -a --backup --suffix=".backup.$(date +%F)" "$HOME/R007-dotfiles/.config/" "$HOME/.config/" >/dev/null 2>&1 || true
-rsync -a --backup --suffix=".backup.$(date +%F)" "$HOME/R007-dotfiles/.local/"  "$HOME/.local/"  >/dev/null 2>&1 || true
+rsync -a --delete "$HOME/R007-dotfiles/.config/" "$HOME/.config/" >/dev/null 2>&1
+rsync -a --delete "$HOME/R007-dotfiles/.local/"  "$HOME/.local/"  >/dev/null 2>&1
 
 [[ "$SHELL" == */zsh ]] || chsh -s "$(which zsh)" "$USER"
 sudo systemctl enable --now NetworkManager sddm
 
-info "Cleaning paru cache..."
-yes | paru -Sc >/dev/null 2>&1 || true
+# ZenForge — the cherry on top
+info "Installing ZenForge (optional but highly recommended)..."
+if ! command -v zenforge &>/dev/null; then
+  if ! command -v cargo &>/dev/null; then
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    source "$HOME/.cargo/env"
+  fi
+  cargo install --git https://github.com/Reep007/ZENFORGE.git --locked
+fi
 
-success "Hyprland rice installation completed!"
+success "R007 rice installed!"
 echo
-echo "   Dotfiles applied • SDDM enabled • Ready to rice"
+echo "   Dotfiles applied • SDDM ready • ZenForge available"
+echo "   Run 'zenforge switch' now or after reboot to activate generations & BTRFS snapshots"
 echo
-echo "Rebooting in 20 seconds (Ctrl+C to cancel)..."
-sleep 20
-exec sudo reboot
+echo "Rebooting in 15 seconds (Ctrl+C to cancel)..."
+sleep 15
+sudo reboot
