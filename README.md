@@ -27,44 +27,29 @@
                                                🧹 Uninstall / Restore
 
 
-          🚀 One-Command Full Rice
-
+🚀 One-Command Full Rice
 From base Arch → fully themed Hyprland desktop in minutes.
 
-        🔒 Safe Selective Dotfile Sync
-
+🔒 Safe Selective Dotfile Sync
 Only syncs folders that exist in the repo
-
 No forced deletions
-
 Auto-backup of ~/.config on first run
 
-     🧰 Automated Setup Includes
-
+🧰 Automated Setup Includes
 Official packages
-
 AUR packages (via paru)
-
 zsh + plugins
-
 GTK/QT theming
-
 Fonts, icons, utilities
 
 🛡️ Modern Bash Practices
-
 set -euo pipefail
-
 Safe commands (no eval!)
-
 Trap-based cleanup
-
 DRY-RUN mode
-
 Color-coded logs
 
 🔧 Optional ZenForge Support
-
 Auto-installs Rust, compiles ZenForge, and sets it up professionally.
 
 
@@ -106,15 +91,10 @@ Auto-installs Rust, compiles ZenForge, and sets it up professionally.
 
 
 🧩 AUR Packages
-
 brave-bin
-
 nordic-theme-git
-
 wpgtk-git
-
 themix-full-git
-
 oh-my-posh
 
 
