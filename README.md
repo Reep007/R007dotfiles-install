@@ -2,7 +2,6 @@
                                              🌑 R007 Dotfiles — Arch + Hyprland Pro Installer
 
 <p align="center"> <img src="https://img.shields.io/badge/Arch_Linux-1793D1?logo=arch-linux&logoColor=white&style=for-the-badge"> <img src="https://img.shields.io/badge/Hyprland-0099E5?logo=linux&logoColor=white&style=for-the-badge"> <img src="https://img.shields.io/badge/Zsh-000000?logo=zsh&logoColor=white&style=for-the-badge"> <img src="https://img.shields.io/badge/AUR-Paru-blue?style=for-the-badge"> </p> <p align="center"> <b>Fast. Safe. Modern. Fully-automated Arch Linux ricing with Hyprland.</b> </p>
-```
 
 
                                               📘 Table of Contents
