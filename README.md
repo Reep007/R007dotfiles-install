@@ -27,12 +27,11 @@
                                                🧹 Uninstall / Restore
 
 
-✨ Features
-🚀 One-Command Full Rice
+          🚀 One-Command Full Rice
 
 From base Arch → fully themed Hyprland desktop in minutes.
 
-🔒 Safe Selective Dotfile Sync
+        🔒 Safe Selective Dotfile Sync
 
 Only syncs folders that exist in the repo
 
@@ -40,7 +39,7 @@ No forced deletions
 
 Auto-backup of ~/.config on first run
 
-🧰 Automated Setup Includes
+     🧰 Automated Setup Includes
 
 Official packages
 
