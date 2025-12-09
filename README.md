@@ -127,11 +127,11 @@ bash install.sh
 Examples:
 
 Full automatic install:
-bash install.sh -y
+install.sh -y
 
 
 Preview everything (no risk):
-bash install.sh --dry-run
+install.sh --dry-run
 
 
 Install with ZenForge:
