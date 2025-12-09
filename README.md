@@ -109,7 +109,7 @@ curl -fsSL https://raw.githubusercontent.com/Reep007/R007dotfiles-install/main/i
 Or clone first
 ```
 git clone https://github.com/Reep007/R007dotfiles-install.git
-cd REPO
+cd R007dotfiles-install
 bash install.sh
 ```
 
@@ -135,7 +135,7 @@ bash install.sh --dry-run
 
 
 Install with ZenForge:
-bash install.sh --with-zenforge
+install.sh --with-zenforge
 
 🖥️ Screenshots
 
