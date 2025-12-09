@@ -2,29 +2,29 @@
 <p align="center"> <img src="https://img.shields.io/badge/Arch_Linux-1793D1?logo=arch-linux&logoColor=white&style=for-the-badge"> <img src="https://img.shields.io/badge/Hyprland-0099E5?logo=linux&logoColor=white&style=for-the-badge"> <img src="https://img.shields.io/badge/Zsh-000000?logo=zsh&logoColor=white&style=for-the-badge"> <img src="https://img.shields.io/badge/AUR-Paru-blue?style=for-the-badge"> </p> <p align="center"> <b>Fast. Safe. Modern. Fully-automated Arch Linux ricing with Hyprland.</b> </p>
 
 
-📘 Table of Contents
+                                              📘 Table of Contents
 
-✨ Features
+                                              ✨ Features
 
-📦 What’s Included
+                                              📦 What’s Included
 
-🚀 Quick Install
+                                              🚀 Quick Install
 
-⚙️ Installer Options
+                                              ⚙️ Installer Options
 
-🖥️ Screenshots
+                                               🖥️ Screenshots
 
-🔧 How It Works
+                                               🔧 How It Works
 
-🔒 Safety Mechanisms
+                                               🔒 Safety Mechanisms
 
-📁 Recommended Repo Structure
+                                               📁 Recommended Repo Structure
 
-🧷 ZenForge Integration
+                                               🧷 ZenForge Integration
 
-🧪 Testing
+                                               🧪 Testing
 
-🧹 Uninstall / Restore
+                                               🧹 Uninstall / Restore
 
 
 ✨ Features
@@ -121,16 +121,16 @@ oh-my-posh
 
 🚀 Quick Install
 
-⚠️ Replace USERNAME/REPO with your actual repo path.
-
 Run directly from GitHub
-curl -fsSL https://raw.githubusercontent.com/USERNAME/REPO/main/install.sh | bash
-
+```
+curl -fsSL https://raw.githubusercontent.com/Reep007/R007dotfiles-install/main/install.sh | bash
+```
 Or clone first
-git clone https://github.com/USERNAME/REPO.git
+```
+git clone https://github.com/Reep007/R007dotfiles-install.git
 cd REPO
 bash install.sh
-
+```
 
 ⚙️ Installer Options
 
