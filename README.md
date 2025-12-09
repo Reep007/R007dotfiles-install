@@ -92,7 +92,7 @@ Auto-installs Rust, compiles ZenForge, and sets it up professionally.
 | Dev          | Node.js, npm, Python, Zsh  |
 
 
-🧩 AUR Packages
+🧩 AUR Packages/
 brave-bin
 nordic-theme-git
 wpgtk-git
@@ -127,17 +127,14 @@ bash install.sh
 Examples:
 
 Full automatic install:
-
 bash install.sh -y
 
 
 Preview everything (no risk):
-
 bash install.sh --dry-run
 
 
 Install with ZenForge:
-
 bash install.sh --with-zenforge
 
 🖥️ Screenshots
@@ -148,32 +145,19 @@ ADD MY SCREEN SHOTS HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
 
-🔧 How It Works
-
+🔧 How It Works/
 Verifies Arch Linux
-
 Installs paru (AUR helper)
-
 Optionally installs Rust
-
 Updates system
-
 Installs official packages (batched)
-
 Installs AUR packages
-
 Clones dotfiles repo
-
 Backs up ~/.config (only once)
-
 Selectively rsyncs .config/ and .local/
-
 Installs Zsh plugins
-
 Enables sddm and NetworkManager
-
 Optional ZenForge build
-
 Reboot prompt
 
 
