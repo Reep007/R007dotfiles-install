@@ -27,7 +27,7 @@
                                                🧪 Testing
 
                                                🧹 Uninstall / Restore
-```
+
 
 🚀 One-Command Full Rice
 From base Arch → fully themed Hyprland desktop in minutes.
