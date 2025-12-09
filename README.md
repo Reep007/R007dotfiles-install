@@ -1,5 +1,5 @@
 
-                                             🌑 R007 Dotfiles — Arch + Hyprland Pro Installer
+                                            🌑 R007 Dotfiles — Arch + Hyprland Pro Installer
                                                                     +
                                                               🧷 ZenForge
                                 Forge your perfect Arch + Hyprland system — declaratively, atomically, forever.
