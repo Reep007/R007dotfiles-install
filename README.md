@@ -137,6 +137,23 @@ install.sh --with-zenforge
 
 
 
+<img width="2564" height="1441" alt="20251209_191119" src="https://github.com/user-attachments/assets/75675d85-98e0-4da7-9787-7c97ebac66dc" />
+
+
+
+<img width="2565" height="1441" alt="20251209_191547" src="https://github.com/user-attachments/assets/d6a4b738-6a0c-4075-9d35-da4985621409" />
+
+
+<img width="2566" height="1441" alt="20251209_190650" src="https://github.com/user-attachments/assets/95f51bb5-8c08-4a2c-9bb0-8970fab009ed" />
+
+
+<img width="2571" height="1440" alt="20250710_025817 (copy 1)" src="https://github.com/user-attachments/assets/78e27eee-3f46-4fca-8503-c6118d360692" />
+
+
+
+
+
+
 
 
 🔧 How It Works/
