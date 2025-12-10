@@ -172,6 +172,7 @@ Reboot prompt
 
 
 📁 Recommended Repo Structure
+```
 R007-dotfiles/
 │── install.sh
 │── README.md
@@ -183,7 +184,7 @@ R007-dotfiles/
 │── .local/
 │   └── bin/
 └── screenshots/
-
+```
 
 🧷 ZenForge Integration
 
