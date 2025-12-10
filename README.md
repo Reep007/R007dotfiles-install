@@ -130,6 +130,8 @@ install.sh --dry-run
 Install with ZenForge:
 install.sh --with-zenforge
 
+🖥️ ZenForge Screenshots
+
 <img width="645" height="848" alt="image" src="https://github.com/user-attachments/assets/138b0707-e220-44fb-b37f-8c535fcc1e23" />
 
 <img width="716" height="687" alt="image" src="https://github.com/user-attachments/assets/b8fa3fee-35fd-40c5-9267-46cf0a48a02a" />
@@ -139,7 +141,7 @@ install.sh --with-zenforge
 
 
 
-🖥️ Screenshots
+🖥️ Theme Screenshots
 
 
 <img width="1920" height="1080" alt="20251209_191943" src="https://github.com/user-attachments/assets/1ae4dff7-3eb3-461d-baa4-f3a4974ea53f" />
