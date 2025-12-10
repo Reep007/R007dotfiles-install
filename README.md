@@ -133,7 +133,7 @@ install.sh --with-zenforge
 🖥️ Screenshots
 
 
-<img width="2568" height="1441" alt="20251209_191943" src="https://github.com/user-attachments/assets/1ae4dff7-3eb3-461d-baa4-f3a4974ea53f" />
+<img width="1920" height="1080" alt="20251209_191943" src="https://github.com/user-attachments/assets/1ae4dff7-3eb3-461d-baa4-f3a4974ea53f" />
 
 
 
