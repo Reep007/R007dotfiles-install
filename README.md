@@ -22,7 +22,7 @@
 #                                      🧹 Uninstall / Restore
 
 
-#  🚀 One-Command Full Rice
+🚀 One-Command Full Rice
 From base Arch → fully themed Hyprland desktop in minutes.
 
 🔒 Safe Selective Dotfile Sync
