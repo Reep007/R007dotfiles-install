@@ -132,11 +132,9 @@ install.sh --with-zenforge
 
 🖥️ ZenForge Screenshots
 
-<img width="645" height="848" alt="image" src="https://github.com/user-attachments/assets/138b0707-e220-44fb-b37f-8c535fcc1e23" />
 
+<img width="684" height="658" alt="20251209_193850" src="https://github.com/user-attachments/assets/abdc1588-8d72-4cad-9562-c0d96373519a" />
 
-
-<img width="716" height="687" alt="image" src="https://github.com/user-attachments/assets/b8fa3fee-35fd-40c5-9267-46cf0a48a02a" />
 
 
 
