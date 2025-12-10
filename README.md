@@ -130,7 +130,7 @@ install.sh --dry-run
 Install with ZenForge:
 install.sh --with-zenforge
 
-🖥️ ZenForge Screenshots
+🖥️ ZenForge Screenshot
 
 
 <img width="684" height="658" alt="20251209_193850" src="https://github.com/user-attachments/assets/abdc1588-8d72-4cad-9562-c0d96373519a" />
