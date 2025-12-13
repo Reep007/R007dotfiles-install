@@ -1,6 +1,20 @@
 #!/usr/bin/env bash
 # R007-dotfiles — Pro Installer (OPTIMIZED ORDER + ALL FIXES)
 # Usage: curl -fsSL https://raw.githubusercontent.com/Reep007/R007-dotfiles/main/install.sh | bash -s -- [options]
+#
+# Features:
+# - Complete Hyprland rice installation
+# - Optimized installation order (system → packages → config → optional tools)
+# - Safe dry-run mode with optional verbose output
+# - Automatic rollback on failure
+# - ZenForge compilation with verification
+# - CI mode for automated testing
+# - Comprehensive logging and summary table
+#
+# Quick Start:
+#   ./install.sh              # Interactive installation
+#   ./install.sh --dry-run    # Preview changes
+#   ./install.sh --ci         # CI/automated testing
 
 set -euo pipefail
 shopt -s inherit_errexit
@@ -19,6 +33,7 @@ DRY_RUN=false
 NO_CONFIRM=false
 WITH_ZENFORGE="auto"  # auto | yes | no
 VERBOSE_DRY_RUN=false
+CI_MODE=false
 
 # Tracking for cleanup
 SUDO_KEEPALIVE_PID=""
@@ -50,6 +65,7 @@ for arg in "$@"; do
     --with-zenforge)           WITH_ZENFORGE=yes ;;
     --without-zenforge)        WITH_ZENFORGE=no ;;
     --verbose)                 VERBOSE_DRY_RUN=true ;;
+    --ci)                      CI_MODE=true; DRY_RUN=true; NO_CONFIRM=true ;;
     --help|-h)
       cat <<'EOF'
 Usage: install.sh [OPTIONS]
@@ -60,6 +76,7 @@ OPTIONS:
   --with-zenforge        Force ZenForge compilation
   --without-zenforge     Skip ZenForge completely
   --verbose              Show detailed output in dry-run mode
+  --ci                   CI mode (non-interactive, dry-run, for testing)
   --help, -h             Show this help message
 
 EXAMPLES:
@@ -67,11 +84,24 @@ EXAMPLES:
   ./install.sh --dry-run          # Preview changes
   ./install.sh --dry-run --verbose # Detailed preview
   ./install.sh -y --without-zenforge # Quick install, skip ZenForge
+  ./install.sh --ci               # CI/automated testing mode
 EOF
       exit 0
       ;;
+    *)
+      error "Unknown option: $arg"
+      echo "Run './install.sh --help' for usage information"
+      exit 1
+      ;;
   esac
 done
+
+# CI mode configuration
+if [[ "$CI_MODE" == true ]]; then
+  info "CI mode enabled (non-interactive, dry-run enforced)"
+  DRY_RUN=true
+  NO_CONFIRM=true
+fi
 
 # -------------------- Colors & Logging --------------------
 RED='\033[1;31m'; GREEN='\033[1;32m'; CYAN='\033[1;36m'; YELLOW='\033[1;33m'; NC='\033[0m'
@@ -165,6 +195,7 @@ EOF
 }
 
 check_path() {
+  # Check ~/.local/bin
   if ! echo "$PATH" | grep -q "$HOME/.local/bin"; then
     warn "~/.local/bin is not in your PATH permanently!"
     
@@ -194,11 +225,79 @@ check_path() {
       echo
     fi
   fi
+  
+  # Check cargo bin (if cargo is installed)
+  if command -v cargo >/dev/null 2>&1; then
+    local cargo_bin
+    cargo_bin="$(cargo_bin_dir)"
+    if ! echo "$PATH" | grep -q "$cargo_bin"; then
+      warn "Cargo bin directory not in PATH: $cargo_bin"
+      info "ZenForge and other Rust tools may not be accessible"
+      info "Add to your shell config: export PATH=\"$cargo_bin:\$PATH\""
+    fi
+  fi
 }
 
 cargo_bin_dir() { 
   local install_root="${CARGO_INSTALL_ROOT:-${CARGO_HOME:-$HOME/.cargo}}"
   echo "$install_root/bin"
+}
+
+check_rust_version() {
+  local min_version="1.70.0"
+  local current_version
+  
+  if ! command -v cargo >/dev/null 2>&1; then
+    return 1
+  fi
+  
+  current_version=$(cargo --version 2>/dev/null | grep -oP '\d+\.\d+\.\d+' | head -1)
+  
+  if [[ -z "$current_version" ]]; then
+    warn "Could not determine Rust version"
+    return 1
+  fi
+  
+  # Compare versions (works with sort -V)
+  if [[ $(printf '%s\n' "$min_version" "$current_version" | sort -V | head -1) != "$min_version" ]]; then
+    warn "Rust $current_version found, but $min_version+ recommended for ZenForge"
+    if ! confirm "Continue with compilation anyway?"; then
+      return 1
+    fi
+  fi
+  
+  info "Rust version: $current_version ✓"
+  return 0
+}
+
+verify_zenforge_install() {
+  local zenforge_bin="$(cargo_bin_dir)/zenforge"
+  
+  # Check if binary exists
+  if [[ ! -f "$zenforge_bin" ]]; then
+    warn "ZenForge binary not found at: $zenforge_bin"
+    return 1
+  fi
+  
+  # Check if it's executable
+  if [[ ! -x "$zenforge_bin" ]]; then
+    warn "ZenForge binary exists but is not executable"
+    chmod +x "$zenforge_bin" 2>/dev/null || return 1
+  fi
+  
+  # Try to run it
+  if ! command -v zenforge >/dev/null 2>&1; then
+    warn "ZenForge not in PATH. Add this to your shell config:"
+    warn "  export PATH=\"$(cargo_bin_dir):\$PATH\""
+    return 1
+  fi
+  
+  # Get version
+  local version
+  version=$(zenforge --version 2>/dev/null || echo "unknown")
+  success "ZenForge verified: $version"
+  info "Binary location: $zenforge_bin"
+  return 0
 }
 
 check_network() {
@@ -253,6 +352,7 @@ prepare() {
   fi 200>"$LOCKFILE"
 
   banner
+  [[ "$CI_MODE" == true ]] && info "CI MODE - Non-interactive, dry-run enforced"
   [[ "$DRY_RUN" == true ]] && info "DRY-RUN mode — nothing will be changed"
   [[ "$VERBOSE_DRY_RUN" == true ]] && info "VERBOSE mode — detailed preview enabled"
   info "Installation log: $LOG_FILE"
@@ -260,7 +360,10 @@ prepare() {
   check_network
   check_disk_space
   
-  confirm "Start the rice installation?" || error "Aborted by user"
+  # Skip confirmation in CI mode
+  if [[ "$CI_MODE" == false ]]; then
+    confirm "Start the rice installation?" || error "Aborted by user"
+  fi
 
   # Keep sudo alive with proper cleanup tracking
   if [[ "$DRY_RUN" == false ]]; then
@@ -321,21 +424,11 @@ install_paru() {
 # Step 3: Install official packages
 install_official_packages() {
   info "Installing official packages..."
-  local pkgs=(
-    hyprland waybar hyprpaper swww kitty hypridle hyprlock
-    wofi dunst grim slurp wl-clipboard cliphist xdg-user-dirs
-    thunar thunar-archive-plugin tumbler gvfs gvfs-mtp gvfs-smb
-    nwg-look qt5ct kvantum qt5-wayland qt6-wayland xdg-desktop-portal-hyprland xdg-desktop-portal-gtk
-    ttf-jetbrains-mono-nerd lsd btop
-    python python-pillow python-pywal python-gobject tk imagemagick papirus-icon-theme
-    polkit polkit-gnome network-manager-applet mpv nano obsidian jq nodejs npm pacman-contrib zsh zsh-completions
-    sddm rsync
-  )
   
-  OFFICIAL_PKG_COUNT=${#pkgs[@]}
+  OFFICIAL_PKG_COUNT=${#OFFICIAL_PKGS[@]}
   info "Package count: ${OFFICIAL_PKG_COUNT} official packages"
   
-  if ! run sudo pacman -S --noconfirm --needed "${pkgs[@]}"; then
+  if ! run sudo pacman -S --noconfirm --needed "${OFFICIAL_PKGS[@]}"; then
     error "Failed to install official packages"
   fi
   
@@ -348,19 +441,19 @@ install_official_packages() {
 install_aur_packages() {
   command -v paru >/dev/null 2>&1 || { warn "paru not available → skipping AUR packages"; return; }
   info "Installing AUR packages..."
-
-  local pkgs=(brave-bin nordic-theme-git wpgtk-git themix-full-git oh-my-posh)
   
-  AUR_PKG_COUNT=${#pkgs[@]}
+  AUR_PKG_COUNT=${#AUR_PKGS[@]}
   info "Package count: ${AUR_PKG_COUNT} AUR packages"
   
-  if ! run paru -S --noconfirm --needed --skipreview "${pkgs[@]}"; then
+  if ! run paru -S --noconfirm --needed --skipreview "${AUR_PKGS[@]}"; then
     warn "Some AUR packages failed to install - continuing"
   fi
 
+  # Clean package cache (using proper flags instead of piping input)
   if [[ "$DRY_RUN" == false ]]; then
-    printf "n\ny\n" | paru -Sc 2>/dev/null || true
+    run paru -Sc --noconfirm 2>/dev/null || true
   fi
+  
   INSTALL_SUMMARY[aur_packages]=true
   success "AUR packages installed"
 }
@@ -476,8 +569,14 @@ install_rust_if_needed() {
     return
   fi
 
-  info "Rust is required for ZenForge compilation"
-  if confirm "Install rustup now? (~500MB download)"; then
+  printf "\n${CYAN}═══════════════════════════════════════${NC}\n"
+  printf "${CYAN}Rust Installation Required${NC}\n"
+  echo "  💾 Download Size: ~500MB"
+  echo "  📦 Install Size: ~2GB"
+  echo "  ⏱  Install Time: 2-5 minutes"
+  printf "${CYAN}═══════════════════════════════════════${NC}\n\n"
+
+  if confirm "Install rustup now?"; then
     if ! curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path; then
       warn "Failed to install rustup"
       WITH_ZENFORGE=no
@@ -490,6 +589,20 @@ install_rust_if_needed() {
       source "$cargo_env"
       INSTALL_SUMMARY[rust_installed]=true
       success "rustup installed"
+      
+      # Add cargo bin to PATH in shell config
+      local zshrc="$HOME/.zshrc"
+      local cargo_path='export PATH="$HOME/.cargo/bin:$PATH"'
+      
+      if [[ -f "$zshrc" ]] && ! grep -qF "$cargo_path" "$zshrc"; then
+        if confirm "Add cargo bin to PATH in ~/.zshrc?"; then
+          echo '' >> "$zshrc"
+          echo '# Added by R007-dotfiles installer (Rust)' >> "$zshrc"
+          echo "$cargo_path" >> "$zshrc"
+          success "Added cargo to PATH in ~/.zshrc"
+        fi
+      fi
+      
       info "Note: You may need to log out and back in for cargo to be in your PATH"
     else
       warn "Cargo environment file not found - manual setup may be needed"
@@ -510,6 +623,12 @@ install_zenforge() {
     return
   fi
 
+  # Check Rust version before attempting compilation
+  if ! check_rust_version; then
+    warn "Rust version check failed - skipping ZenForge compilation"
+    return
+  fi
+
   info "Preparing ZenForge installation..."
   
   if [[ -d "$ZENFORGE_DIR/.git" ]]; then
@@ -523,14 +642,15 @@ install_zenforge() {
     fi
   fi
 
-  # Informative pre-compile prompt
+  # Enhanced pre-compilation info
   printf "\n${CYAN}═══════════════════════════════════════${NC}\n"
-  printf "${CYAN}ZenForge Compilation Details:${NC}\n"
-  echo "  Repository: $ZENFORGE_REPO"
-  echo "  Source Path: $ZENFORGE_DIR"
-  echo "  Binary Destination: $(cargo_bin_dir)/zenforge"
-  echo "  Estimated Time: 3–10 minutes"
-  echo "  Disk Usage: ~200MB during build"
+  printf "${CYAN}ZenForge Compilation Details${NC}\n"
+  echo "  📦 Repository: $ZENFORGE_REPO"
+  echo "  🎯 Target: $(cargo_bin_dir)/zenforge"
+  echo "  🔧 Rust: $(cargo --version 2>/dev/null | grep -oP '\d+\.\d+\.\d+' || echo 'unknown')"
+  echo "  ⏱  Time: 3–10 minutes (depends on CPU)"
+  echo "  💾 Build Space: ~200MB temporary"
+  echo "  🌐 Network: ~50MB dependencies"
   printf "${CYAN}═══════════════════════════════════════${NC}\n\n"
 
   if ! confirm "Compile and install ZenForge now?"; then
@@ -540,15 +660,30 @@ install_zenforge() {
   fi
 
   info "Compiling ZenForge... grab a coffee ☕"
+  local compile_start
+  compile_start=$(date +%s)
   
   if ! (cd "$ZENFORGE_DIR" && run cargo install --path . --locked --force); then
     warn "ZenForge compilation failed - check the log for details"
     return
   fi
   
+  local compile_end
+  compile_end=$(date +%s)
+  local compile_time=$((compile_end - compile_start))
+  
   INSTALL_SUMMARY[zenforge_compiled]=true
-  success "ZenForge installed → $(cargo_bin_dir)/zenforge"
-  info "Run 'zenforge --help' to get started"
+  success "ZenForge compiled in ${compile_time}s → $(cargo_bin_dir)/zenforge"
+  
+  # Verify the installation
+  echo
+  info "Verifying ZenForge installation..."
+  if verify_zenforge_install; then
+    success "ZenForge is ready to use!"
+    info "Try: zenforge --help"
+  else
+    warn "ZenForge compiled but verification failed - check PATH configuration"
+  fi
 }
 
 # Verification step
@@ -569,6 +704,18 @@ verify_installation() {
   fi
   
   success "Core packages verified ✓"
+  
+  # Verify ZenForge if it was installed
+  if [[ ${INSTALL_SUMMARY[zenforge_compiled]} == true ]]; then
+    info "Verifying ZenForge..."
+    if verify_zenforge_install; then
+      success "ZenForge verified ✓"
+    else
+      warn "ZenForge verification failed"
+      return 1
+    fi
+  fi
+  
   return 0
 }
 
@@ -601,7 +748,20 @@ print_summary() {
   printf "%-30s %s\n" "Shell Configuration:" "$([[ ${INSTALL_SUMMARY[shell_configured]} == true ]] && echo -e "${GREEN}✓ zsh set${NC}" || echo -e "${YELLOW}⊘ Unchanged${NC}")"
   printf "%-30s %s\n" "System Services:" "$([[ ${INSTALL_SUMMARY[services_enabled]} == true ]] && echo -e "${GREEN}✓ Enabled${NC}" || echo -e "${YELLOW}⊘ Skipped${NC}")"
   printf "%-30s %s\n" "Rust/Cargo:" "$([[ ${INSTALL_SUMMARY[rust_installed]} == true ]] && echo -e "${GREEN}✓ Installed${NC}" || echo -e "${YELLOW}⊘ Skipped${NC}")"
-  printf "%-30s %s\n" "ZenForge:" "$([[ ${INSTALL_SUMMARY[zenforge_compiled]} == true ]] && echo -e "${GREEN}✓ Compiled${NC}" || echo -e "${YELLOW}⊘ Skipped${NC}")"
+  
+  # ZenForge with verification status
+  if [[ ${INSTALL_SUMMARY[zenforge_compiled]} == true ]]; then
+    if command -v zenforge >/dev/null 2>&1; then
+      local zf_version
+      zf_version=$(zenforge --version 2>/dev/null | head -1 || echo "unknown")
+      printf "%-30s ${GREEN}✓ Compiled & Verified${NC}\n" "ZenForge:"
+      printf "%-30s   %s\n" "" "$zf_version"
+    else
+      printf "%-30s ${YELLOW}⚠ Compiled (PATH issue)${NC}\n" "ZenForge:"
+    fi
+  else
+    printf "%-30s %s\n" "ZenForge:" "${YELLOW}⊘ Skipped${NC}"
+  fi
   
   printf "\n"
   
@@ -628,6 +788,22 @@ finalize() {
   fi
   
   clear
+  
+  # Special CI mode output
+  if [[ "$CI_MODE" == true ]]; then
+    printf "${GREEN}"
+    cat <<'EOF'
+╔══════════════════════════════════════════════════════════╗
+║          CI Mode - Dry-Run Complete                     ║
+╚══════════════════════════════════════════════════════════╝
+EOF
+    printf "${NC}\n"
+    print_summary
+    info "CI mode complete - script validation passed"
+    info "Log file: $LOG_FILE"
+    exit 0
+  fi
+  
   printf "${GREEN}"
   cat <<'EOF'
 ╔══════════════════════════════════════════════════════════╗
@@ -670,24 +846,28 @@ EOF
 
 # -------------------- OPTIMIZED EXECUTION ORDER --------------------
 main() {
-  info "Installation Order:"
-  echo "  1. System preflight checks"
-  echo "  2. System update (keyring + packages)"
-  echo "  3. Install paru (AUR helper)"
-  echo "  4. Install official packages (Hyprland, tools, fonts)"
-  echo "  5. Install AUR packages (themes, browsers)"
-  echo "  6. Apply dotfiles configuration"
-  echo "  7. Configure zsh shell"
-  echo "  8. Enable system services"
-  echo "  9. Install Rust (if ZenForge enabled)"
-  echo "  10. Compile ZenForge (optional, last step)"
-  
-  if [[ "$DRY_RUN" == true ]]; then
+  if [[ "$CI_MODE" == false ]]; then
+    info "Installation Order:"
+    echo "  1. System preflight checks"
+    echo "  2. System update (keyring + packages)"
+    echo "  3. Install paru (AUR helper)"
+    echo "  4. Install official packages (Hyprland, tools, fonts)"
+    echo "  5. Install AUR packages (themes, browsers)"
+    echo "  6. Apply dotfiles configuration"
+    echo "  7. Configure zsh shell"
+    echo "  8. Enable system services"
+    echo "  9. Install Rust (if ZenForge enabled)"
+    echo "  10. Compile ZenForge (optional, last step)"
+    
+    if [[ "$DRY_RUN" == true ]]; then
+      echo
+      info "Running in DRY-RUN mode - no changes will be made"
+      [[ "$VERBOSE_DRY_RUN" == true ]] && info "Verbose output enabled for detailed preview"
+    fi
     echo
-    info "Running in DRY-RUN mode - no changes will be made"
-    [[ "$VERBOSE_DRY_RUN" == true ]] && info "Verbose output enabled for detailed preview"
+  else
+    info "CI Mode: Testing installation script (dry-run only)"
   fi
-  echo
   
   prepare                    # Step 0: Preflight
   system_update              # Step 1: Update first (MOVED UP)
@@ -703,4 +883,3 @@ main() {
 }
 
 main
-
