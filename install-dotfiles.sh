@@ -57,6 +57,46 @@ WARNINGS_COUNT=0
 OFFICIAL_PKG_COUNT=0
 AUR_PKG_COUNT=0
 
+# -------------------- Package Definitions --------------------
+OFFICIAL_PKGS=(
+  # Core Hyprland & Wayland
+  hyprland waybar hyprpaper swww kitty hypridle hyprlock
+  
+  # Launchers, notifications, screenshots
+  wofi dunst grim slurp wl-clipboard cliphist xdg-user-dirs
+  
+  # File manager + thumbnails
+  thunar thunar-archive-plugin tumbler gvfs gvfs-mtp gvfs-smb
+  
+  # Theming & appearance
+  nwg-look qt5ct kvantum qt5-wayland qt6-wayland
+  xdg-desktop-portal-hyprland xdg-desktop-portal-gtk
+  
+  # Fonts & terminal tools
+  ttf-jetbrains-mono-nerd lsd btop
+  
+  # Python & theming tools
+  python python-pillow python-pywal python-gobject tk
+  
+  # Utilities
+  network-manager-applet polkit-gnome mpv nano obsidian
+  jq nodejs npm pacman-contrib
+  
+  # Shell
+  zsh zsh-completions
+  
+  # Display manager
+  sddm
+)
+
+AUR_PKGS=(
+  brave-bin
+  nordic-theme-git
+  wpgtk-git
+  themix-full-git
+  oh-my-posh
+)
+
 # -------------------- CLI parsing --------------------
 for arg in "$@"; do
   case "$arg" in
@@ -372,7 +412,7 @@ prepare() {
       while true; do
         sudo -n true || exit
         sleep 50
-        kill -0 "$" 2>/dev/null || exit
+        kill -0 "$$" 2>/dev/null || exit
       done
     ) &
     SUDO_KEEPALIVE_PID=$!
@@ -445,7 +485,7 @@ install_aur_packages() {
   AUR_PKG_COUNT=${#AUR_PKGS[@]}
   info "Package count: ${AUR_PKG_COUNT} AUR packages"
   
-  if ! run paru -S --noconfirm --needed --skipreview "${AUR_PKGS[@]}"; then
+  if ! run paru -S --noconfirm --needed "${AUR_PKGS[@]}"; then
     warn "Some AUR packages failed to install - continuing"
   fi
 
