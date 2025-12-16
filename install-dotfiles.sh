@@ -81,7 +81,8 @@ success() { printf "${GREEN}[OK]${NC}     %b\n" "$*"; }
 warn()    { printf "${YELLOW}[WARN]${NC}   %b\n" "$*"; ((WARNINGS_COUNT++)); }
 error()   { printf "${RED}[ERROR]${NC} %b\n" "$*" >&2; exit 1; }
 
-exec > >(tee -a "$LOG_FILE") 2>&1
+# Don't redirect immediately - do it in prepare() after initial checks
+# exec > >(tee -a "$LOG_FILE") 2>&1
 
 # -------------------- Safe runner --------------------
 run() {
@@ -142,9 +143,15 @@ require_tty() {
 prepare() {
   check_not_root
   [[ "$CI_MODE" == false ]] && require_tty
-  [[ -f /etc/arch-release ]] || error "Arch Linux only"
   
-  exec 200>"$LOCKFILE"
+  # Start logging AFTER initial checks
+  exec > >(tee -a "$LOG_FILE") 2>&1
+  
+  if [[ ! -f /etc/arch-release ]]; then
+    error "Arch Linux only (no /etc/arch-release found)"
+  fi
+  
+  exec 200>"$LOCKFILE" 2>/dev/null || error "Cannot create lockfile"
   flock -n 200 || error "Another installer is running"
   
   banner
@@ -325,4 +332,3 @@ main() {
 }
 
 main "$@"
-
