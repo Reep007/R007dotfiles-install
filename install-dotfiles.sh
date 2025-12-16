@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # R007-dotfiles — Pro Installer (Production Ready)
-# Usage: curl -fsSL https://raw.githubusercontent.com/Reep007/R7dotfiles-install/main/install-dotfiles.sh | bash -s -- [options]
+# Usage:
+#   curl -fsSL https://raw.githubusercontent.com/Reep007/R7dotfiles-install/main/install-dotfiles.sh -o install-dotfiles.sh
+#   bash install-dotfiles.sh [options]
 
 set -euo pipefail
 shopt -s inherit_errexit
@@ -10,12 +12,12 @@ DOTFILES_REPO="https://github.com/Reep007/R007-dotfiles.git"
 DOTFILES_DIR="$HOME/R007-dotfiles"
 AUR_BUILD_BASE="${AUR_BUILD_BASE:-$HOME/.cache/aur-builds}"
 LOCKFILE="/tmp/r007-installer.lock"
-LOG_FILE="$HOME/r007-install-$(date +%Y%m%d_%H%M%S)-$$.log"  # Fixed: use $$ for PID
+LOG_FILE="$HOME/r007-install-$(date +%Y%m%d_%H%M%S)-$$.log"
 
 # Flags
 DRY_RUN=false
 NO_CONFIRM=false
-VERBOSE=false          # Renamed for clarity (was VERBOSE_DRY_RUN)
+VERBOSE=false
 CI_MODE=false
 
 # Tracking for cleanup
@@ -75,8 +77,8 @@ Usage: install-dotfiles.sh [OPTIONS]
 OPTIONS:
   --dry-run, --test      Preview everything (no changes made)
   --no-confirm, -y       Auto-yes to all prompts
-  --verbose              Show executed commands (real run) and extra dry-run details
-  --ci                   CI mode (non-interactive, dry-run, for testing)
+  --verbose              Show executed commands
+  --ci                   CI mode (non-interactive, dry-run)
   --help, -h             Show this help message
 EOF
       exit 0
@@ -97,7 +99,7 @@ error()   { printf "${RED}[ERROR]${NC}  %b\n" "$*" >&2; exit 1; }
 
 exec > >(tee -a "$LOG_FILE") 2>&1
 
-# -------------------- Safe runner (now with optional verbose) --------------------
+# -------------------- Safe runner --------------------
 run() {
   if [[ "$DRY_RUN" == true ]]; then
     printf "${YELLOW}[DRY-RUN]${NC} %s\n" "$*"
@@ -129,7 +131,7 @@ trap cleanup EXIT ERR INT TERM
 confirm() {
   [[ "$NO_CONFIRM" == true || "$DRY_RUN" == true ]] && return 0
   printf "${CYAN}?${NC} %s [Y/n] " "${1:-Continue?}"
-  read -r -t 60 ans || ans="y"
+  read -r -t 60 ans || ans="n"
   [[ "$ans" =~ ^[Nn]$ ]] && return 1 || return 0
 }
 
@@ -147,9 +149,26 @@ check_not_root() {
   [[ $EUID -eq 0 ]] && error "Do not run this script as root"
 }
 
-# -------------------- Preflight (NOW WITH PROMPT) --------------------
+require_tty() {
+  if ! [[ -t 0 && -t 1 ]]; then
+    error "This installer must be run in a real terminal (TTY).
+
+Do NOT run via: curl | bash
+
+Instead run:
+  curl -fsSL https://raw.githubusercontent.com/Reep007/R7dotfiles-install/main/install-dotfiles.sh -o install-dotfiles.sh
+  bash install-dotfiles.sh"
+  fi
+}
+
+# -------------------- Preflight --------------------
 prepare() {
   check_not_root
+
+  if [[ "$CI_MODE" == false ]]; then
+    require_tty
+  fi
+
   [[ -f /etc/arch-release ]] || error "Arch Linux only"
 
   exec 200>"$LOCKFILE"
@@ -160,12 +179,17 @@ prepare() {
   [[ "$DRY_RUN" == true ]] && info "DRY-RUN mode enabled"
   info "Log: $LOG_FILE"
 
-  # THIS WAS MISSING — NOW RESTORED
   confirm "Start the rice installation?" || error "Aborted by user"
 
   if [[ "$DRY_RUN" == false ]]; then
-    sudo -v
-    ( while true; do sudo -n true || exit; sleep 50; kill -0 "$$" 2>/dev/null || exit; done ) &
+    sudo -v || error "sudo authentication failed"
+    (
+      while true; do
+        sudo -n true || exit
+        sleep 50
+        kill -0 "$$" 2>/dev/null || exit
+      done
+    ) &
     SUDO_KEEPALIVE_PID=$!
   fi
 
@@ -173,20 +197,16 @@ prepare() {
 }
 
 # -------------------- Installation Steps --------------------
-# (All your existing functions remain unchanged — they're perfect)
 system_update() {
   info "Updating system..."
   run sudo pacman -Sy --noconfirm --needed archlinux-keyring || warn "Keyring update failed"
   run sudo pacman -Syu --noconfirm || error "System update failed"
-  INSTALL_SUMMARY[system_updated]=true
+  [[ "$DRY_RUN" == false ]] && INSTALL_SUMMARY[system_updated]=true
   success "System updated"
 }
 
 install_paru() {
-  if command -v paru >/dev/null 2>&1; then
-    info "paru already installed"
-    return
-  fi
+  command -v paru >/dev/null 2>&1 && { info "paru already installed"; return; }
   info "Installing paru..."
   run sudo pacman -S --noconfirm --needed base-devel git
   local build_dir
@@ -194,201 +214,84 @@ install_paru() {
   tmpdirs+=("$build_dir")
   run git clone --depth 1 https://aur.archlinux.org/paru.git "$build_dir"
   (cd "$build_dir" && run makepkg -fsri --noconfirm)
-  INSTALL_SUMMARY[paru_installed]=true
+  [[ "$DRY_RUN" == false ]] && INSTALL_SUMMARY[paru_installed]=true
   success "paru installed"
 }
 
 install_official_packages() {
   info "Installing official packages..."
   OFFICIAL_PKG_COUNT=${#OFFICIAL_PKGS[@]}
-  info "Package count: ${OFFICIAL_PKG_COUNT} packages"
-  run sudo pacman -S --noconfirm --needed "${OFFICIAL_PKGS[@]}" || error "Failed to install official packages"
+  run sudo pacman -S --noconfirm --needed "${OFFICIAL_PKGS[@]}" || error "Official packages failed"
   run xdg-user-dirs-update || true
-  INSTALL_SUMMARY[official_packages]=true
+  [[ "$DRY_RUN" == false ]] && INSTALL_SUMMARY[official_packages]=true
   success "Official packages installed"
 }
 
 install_aur_packages() {
-  if ! command -v paru >/dev/null 2>&1; then
-    warn "paru not available - skipping AUR packages"
-    return
-  fi
+  command -v paru >/dev/null 2>&1 || { warn "paru not available"; return; }
   info "Installing AUR packages..."
   AUR_PKG_COUNT=${#AUR_PKGS[@]}
-  info "Package count: ${AUR_PKG_COUNT} packages"
   run paru -S --noconfirm --needed "${AUR_PKGS[@]}" || warn "Some AUR packages failed"
-  if [[ "$DRY_RUN" == false ]]; then
-    paru -Sc --noconfirm 2>/dev/null || true
-  fi
-  INSTALL_SUMMARY[aur_packages]=true
+  run paru -Sc --noconfirm || true
+  [[ "$DRY_RUN" == false ]] && INSTALL_SUMMARY[aur_packages]=true
   success "AUR packages installed"
 }
 
 apply_dotfiles() {
   info "Applying dotfiles..."
   if [[ ! -d "$DOTFILES_DIR/.git" ]]; then
-    run git clone --depth 1 "$DOTFILES_REPO" "$DOTFILES_DIR" || error "Failed to clone dotfiles"
+    run git clone --depth 1 "$DOTFILES_REPO" "$DOTFILES_DIR"
   else
-    (cd "$DOTFILES_DIR" && run git pull --ff-only --quiet) || warn "Git pull failed - using existing version"
+    (cd "$DOTFILES_DIR" && run git pull --ff-only --quiet) || warn "Git pull failed"
   fi
 
   if [[ "$DRY_RUN" == false && -d "$HOME/.config" ]]; then
     LAST_BACKUP="$HOME/.config_backup_$(date +%Y%m%d_%H%M%S)_$$"
-    info "Backing up ~/.config → $LAST_BACKUP"
     cp -a "$HOME/.config" "$LAST_BACKUP"
   fi
 
   for plugin in zsh-autosuggestions zsh-syntax-highlighting; do
-    local dest="$HOME/.zsh/$plugin"
-    if [[ ! -d "$dest" ]]; then
-      run git clone --depth 1 --quiet "https://github.com/zsh-users/$plugin" "$dest" || warn "Failed to install $plugin"
-    fi
+    [[ -d "$HOME/.zsh/$plugin" ]] || run git clone --depth 1 "https://github.com/zsh-users/$plugin" "$HOME/.zsh/$plugin"
   done
 
-  info "Syncing .config/"
-  run rsync -a "$DOTFILES_DIR/.config/" "$HOME/.config/" || error "Failed to sync .config"
-  info "Syncing .local/"
-  run rsync -a "$DOTFILES_DIR/.local/" "$HOME/.local/" || error "Failed to sync .local"
-  run find "$HOME/.local/bin" -type f -exec chmod +x {} \; 2>/dev/null || true
+  run rsync -a "$DOTFILES_DIR/.config/" "$HOME/.config/"
+  run rsync -a "$DOTFILES_DIR/.local/" "$HOME/.local/"
+  run find "$HOME/.local/bin" -type f -exec chmod +x {} \; || true
 
-  INSTALL_SUMMARY[dotfiles_applied]=true
+  [[ "$DRY_RUN" == false ]] && INSTALL_SUMMARY[dotfiles_applied]=true
   success "Dotfiles applied"
 }
 
 configure_shell() {
-  if ! command -v zsh >/dev/null 2>&1; then
-    warn "zsh not found - skipping shell configuration"
-    return
-  fi
-  if [[ "$SHELL" == */zsh ]]; then
-    info "Already using zsh"
-    return
-  fi
+  command -v zsh >/dev/null 2>&1 || { warn "zsh not found"; return; }
+  [[ "$SHELL" == */zsh ]] && { info "Already using zsh"; return; }
   if confirm "Change default shell to zsh?"; then
-    run sudo chsh -s "$(command -v zsh)" "$USER" || warn "Failed to change shell"
-    INSTALL_SUMMARY[shell_configured]=true
-    success "zsh set as default shell (relogin required)"
+    run sudo chsh -s "$(command -v zsh)" "$USER"
+    [[ "$DRY_RUN" == false ]] && INSTALL_SUMMARY[shell_configured]=true
+    success "zsh set as default shell"
   fi
 }
 
 enable_services() {
-  info "Enabling system services..."
-  run sudo systemctl enable --now NetworkManager || warn "Failed to enable NetworkManager"
-  run sudo systemctl enable sddm || warn "Failed to enable SDDM"
-  INSTALL_SUMMARY[services_enabled]=true
+  run sudo systemctl enable --now NetworkManager || warn "NetworkManager failed"
+  run sudo systemctl enable sddm || warn "SDDM failed"
+  [[ "$DRY_RUN" == false ]] && INSTALL_SUMMARY[services_enabled]=true
   success "Services enabled"
 }
 
-# -------------------- Summary & Finalize --------------------
-print_summary() {
-  [[ "$DRY_RUN" == true ]] && return
-  # (Your excellent summary function unchanged)
-  printf "\n${CYAN}═══════════════════════════════════════════════════════════${NC}\n"
-  printf "${CYAN}                 INSTALLATION SUMMARY${NC}\n"
-  printf "${CYAN}═══════════════════════════════════════════════════════════${NC}\n\n"
-  
-  printf "%-30s %s\n" "System Update:" "$([[ ${INSTALL_SUMMARY[system_updated]} == true ]] && echo -e "${GREEN}✓ Complete${NC}" || echo -e "${YELLOW}⊘ Skipped${NC}")"
-  printf "%-30s %s\n" "Paru AUR Helper:" "$([[ ${INSTALL_SUMMARY[paru_installed]} == true ]] && echo -e "${GREEN}✓ Installed${NC}" || echo -e "${YELLOW}⊘ Skipped${NC}")"
-  
-  if [[ ${INSTALL_SUMMARY[official_packages]} == true ]]; then
-    printf "%-30s ${GREEN}✓ Installed${NC} (${OFFICIAL_PKG_COUNT} packages)\n" "Official Packages:"
-  else
-    printf "%-30s %s\n" "Official Packages:" "${YELLOW}⊘ Skipped${NC}"
-  fi
-  
-  if [[ ${INSTALL_SUMMARY[aur_packages]} == true ]]; then
-    printf "%-30s ${GREEN}✓ Installed${NC} (${AUR_PKG_COUNT} packages)\n" "AUR Packages:"
-  else
-    printf "%-30s %s\n" "AUR Packages:" "${YELLOW}⊘ Skipped${NC}"
-  fi
-  
-  printf "%-30s %s\n" "Dotfiles Applied:" "$([[ ${INSTALL_SUMMARY[dotfiles_applied]} == true ]] && echo -e "${GREEN}✓ Complete${NC}" || echo -e "${YELLOW}⊘ Skipped${NC}")"
-  printf "%-30s %s\n" "Shell Configuration:" "$([[ ${INSTALL_SUMMARY[shell_configured]} == true ]] && echo -e "${GREEN}✓ zsh set${NC}" || echo -e "${YELLOW}⊘ Unchanged${NC}")"
-  printf "%-30s %s\n" "System Services:" "$([[ ${INSTALL_SUMMARY[services_enabled]} == true ]] && echo -e "${GREEN}✓ Enabled${NC}" || echo -e "${YELLOW}⊘ Skipped${NC}")"
-  
-  printf "\n"
-  
-  local total_pkgs=$((OFFICIAL_PKG_COUNT + AUR_PKG_COUNT))
-  [[ $total_pkgs -gt 0 ]] && printf "${CYAN}📦 Total packages installed: %d${NC}\n" "$total_pkgs"
-  
-  if [[ $WARNINGS_COUNT -gt 0 ]]; then
-    printf "${YELLOW}⚠  Warnings encountered: %d${NC}\n" "$WARNINGS_COUNT"
-    printf "${YELLOW}   Check the log for details: %s${NC}\n\n" "$LOG_FILE"
-  else
-    printf "${GREEN}✓  No warnings - installation completed cleanly${NC}\n\n"
-  fi
-  
-  printf "${CYAN}═══════════════════════════════════════════════════════════${NC}\n\n"
-}
-
+# -------------------- Finalize --------------------
 finalize() {
   clear
-  
-  if [[ "$CI_MODE" == true ]]; then
-    printf "${GREEN}"
-    cat <<'EOF'
-╔══════════════════════════════════════════════════════════╗
-║          CI Mode - Dry-Run Complete                     ║
-╚══════════════════════════════════════════════════════════╝
-EOF
-    printf "${NC}\n"
-    print_summary
-    info "CI mode complete - script validation passed"
-    exit 0
-  fi
-  
-  printf "${GREEN}"
-  cat <<'EOF'
-╔══════════════════════════════════════════════════════════╗
-║          R007 Rice — Installation Complete!             ║
-║        Hyprland • Waybar • Theming • Dotfiles           ║
-╚══════════════════════════════════════════════════════════╝
-EOF
-  printf "${NC}\n"
-
-  print_summary
-
+  banner
   if [[ "$DRY_RUN" == true ]]; then
     info "Dry-run complete — no changes made"
-    echo
-    info "To perform the actual installation, run without --dry-run"
-    return
-  fi
-
-  info "Installation log: $LOG_FILE"
-  [[ -n "$LAST_BACKUP" ]] && info "Config backup: $LAST_BACKUP"
-  echo
-  info "Next steps:"
-  echo "  1. Reboot your system"
-  echo "  2. Select 'Hyprland' from SDDM login screen"
-  echo "  3. Enjoy your new rice! 🍚"
-  echo
-  
-  if confirm "Reboot now?"; then
-    info "Rebooting in 5 seconds... (Ctrl+C to cancel)"
-    sleep 5
-    sudo systemctl reboot
   else
-    success "Installation complete! Reboot when ready."
+    success "Installation complete! Reboot recommended."
   fi
 }
 
-# -------------------- Main Execution --------------------
+# -------------------- Main --------------------
 main() {
-  if [[ "$CI_MODE" == false ]]; then
-    info "Installation Steps:"
-    echo "  1. System update"
-    echo "  2. Install paru (AUR helper)"
-    echo "  3. Install official packages (Hyprland, tools, fonts)"
-    echo "  4. Install AUR packages (themes, browsers)"
-    echo "  5. Apply dotfiles configuration"
-    echo "  6. Configure zsh shell"
-    echo "  7. Enable system services"
-    
-    [[ "$DRY_RUN" == true ]] && info "Running in DRY-RUN mode - no changes will be made"
-    echo
-  fi
-  
   prepare
   system_update
   install_paru
@@ -401,3 +304,4 @@ main() {
 }
 
 main "$@"
+
