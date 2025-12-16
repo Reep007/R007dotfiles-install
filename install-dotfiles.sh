@@ -13,6 +13,7 @@ DRY_RUN=false
 NO_CONFIRM=false
 
 # -------------------- Package Definitions --------------------
+# Edit these lists to match YOUR setup
 OFFICIAL_PKGS=(
   hyprland waybar hyprpaper swww kitty hypridle hyprlock wofi dunst
   grim slurp wl-clipboard cliphist xdg-user-dirs thunar thunar-archive-plugin
@@ -23,15 +24,14 @@ OFFICIAL_PKGS=(
   pacman-contrib zsh zsh-completions sddm rsync
 )
 
+# AUR packages - comment out any that fail to build
 AUR_PKGS=(
-  brave-bin 
-  nordic-theme-git 
-  wpgtk-git 
-  oh-my-posh
+  brave-bin              # Browser - works fine
+  # nordic-theme-git     # Theme - comment out if issues
+  # wpgtk-git            # Wallpaper tool - REQUIRES RUST, comment out if issues  
+  # themix-full-git      # Theme mixer - HUGE PACKAGE, comment out if issues
+  oh-my-posh             # Shell prompt - works fine
 )
-
-# Removed: themix-full-git (requires Rust and is huge)
-# If you really need it, install separately with: paru -S themix-full-git
 
 # -------------------- CLI parsing --------------------
 for arg in "$@"; do
