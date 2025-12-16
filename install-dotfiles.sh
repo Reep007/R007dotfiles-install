@@ -163,11 +163,7 @@ prepare() {
   banner
   [[ "$CI_MODE" == true ]] && info "CI MODE - dry-run enforced"
   [[ "$DRY_RUN" == true ]] && info "DRY-RUN mode enabled"
-  
-  # Start logging
-  info "Starting installer..."
   info "Log file: $LOG_FILE"
-  exec > >(tee -a "$LOG_FILE") 2>&1
   
   exec 200>"$LOCKFILE" 2>/dev/null || error "Cannot create lockfile"
   flock -n 200 || error "Another installer is running"
@@ -175,6 +171,10 @@ prepare() {
   if ! confirm "Start the rice installation?"; then
     error "Installation cancelled by user"
   fi
+  
+  # Start logging AFTER user confirms
+  info "Starting installation..."
+  exec > >(tee -a "$LOG_FILE") 2>&1
   
   if [[ "$DRY_RUN" == false ]]; then
     sudo -v || warn "sudo authentication failed; some steps may fail"
