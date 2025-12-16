@@ -114,7 +114,7 @@ trap cleanup EXIT ERR INT TERM
 confirm() {
   [[ "$NO_CONFIRM" == true || "$DRY_RUN" == true ]] && return 0
   printf "${CYAN}?${NC} %s [Y/n] " "${1:-Continue?}"
-  read -r -t 60 ans || ans="y"
+  read -r -t 60 ans || ans="y"  # <-- default yes if read fails
   [[ "$ans" =~ ^[Nn]$ ]] && return 1 || return 0
 }
 
@@ -129,9 +129,7 @@ EOF
 }
 
 check_not_root() { [[ $EUID -eq 0 ]] && error "Do not run this script as root"; }
-require_tty() {
-  if ! [[ -t 0 && -t 1 ]]; then warn "No proper TTY detected; sudo prompts may fail. Continuing anyway."; fi
-}
+require_tty() { [[ ! -t 0 || ! -t 1 ]] && warn "No proper TTY detected; sudo prompts may fail. Continuing anyway."; }
 
 # -------------------- Preflight --------------------
 prepare() {
@@ -154,17 +152,92 @@ prepare() {
 }
 
 # -------------------- Installation Steps --------------------
-system_update() { info "Updating system..."; run sudo pacman -Sy --noconfirm --needed archlinux-keyring || warn "Keyring update failed"; run sudo pacman -Syu --noconfirm || warn "System update failed"; [[ "$DRY_RUN" == false ]] && INSTALL_SUMMARY[system_updated]=true; success "System updated"; }
-install_paru() { command -v paru >/dev/null 2>&1 && { info "paru already installed"; return; }; info "Installing paru..."; run sudo pacman -S --noconfirm --needed base-devel git; local build_dir; build_dir=$(mktemp -d "$AUR_BUILD_BASE/paru.XXXX"); tmpdirs+=("$build_dir"); run git clone --depth 1 https://aur.archlinux.org/paru.git "$build_dir"; (cd "$build_dir" && run makepkg -fsri --noconfirm); [[ "$DRY_RUN" == false ]] && INSTALL_SUMMARY[paru_installed]=true; success "paru installed"; }
-install_official_packages() { info "Installing official packages..."; OFFICIAL_PKG_COUNT=${#OFFICIAL_PKGS[@]}; run sudo pacman -S --noconfirm --needed "${OFFICIAL_PKGS[@]}" || warn "Some official packages failed"; run xdg-user-dirs-update || true; [[ "$DRY_RUN" == false ]] && INSTALL_SUMMARY[official_packages]=true; success "Official packages installed"; }
-install_aur_packages() { command -v paru >/dev/null 2>&1 || { warn "paru not available"; return; }; info "Installing AUR packages..."; AUR_PKG_COUNT=${#AUR_PKGS[@]}; run paru -S --noconfirm --needed "${AUR_PKGS[@]}" || warn "Some AUR packages failed"; run paru -Sc --noconfirm || true; [[ "$DRY_RUN" == false ]] && INSTALL_SUMMARY[aur_packages]=true; success "AUR packages installed"; }
-apply_dotfiles() { info "Applying dotfiles..."; [[ ! -d "$DOTFILES_DIR/.git" ]] && run git clone --depth 1 "$DOTFILES_REPO" "$DOTFILES_DIR" || (cd "$DOTFILES_DIR" && run git pull --ff-only --quiet || warn "Git pull failed"); [[ "$DRY_RUN" == false && -d "$HOME/.config" ]] && LAST_BACKUP="$HOME/.config_backup_$(date +%Y%m%d_%H%M%S)_$$" && cp -a "$HOME/.config" "$LAST_BACKUP"; for plugin in zsh-autosuggestions zsh-syntax-highlighting; do [[ -d "$HOME/.zsh/$plugin" ]] || run git clone --depth 1 "https://github.com/zsh-users/$plugin" "$HOME/.zsh/$plugin"; done; run rsync -a "$DOTFILES_DIR/.config/" "$HOME/.config/"; run rsync -a "$DOTFILES_DIR/.local/" "$HOME/.local/"; run find "$HOME/.local/bin" -type f -exec chmod +x {} \; || true; [[ "$DRY_RUN" == false ]] && INSTALL_SUMMARY[dotfiles_applied]=true; success "Dotfiles applied"; }
-configure_shell() { command -v zsh >/dev/null 2>&1 || { warn "zsh not found"; return; }; [[ "$SHELL" == */zsh ]] && { info "Already using zsh"; return; }; confirm "Change default shell to zsh?" && run sudo chsh -s "$(command -v zsh)" "$USER" && [[ "$DRY_RUN" == false ]] && INSTALL_SUMMARY[shell_configured]=true && success "zsh set as default shell"; }
-enable_services() { run sudo systemctl enable --now NetworkManager || warn "NetworkManager failed"; run sudo systemctl enable sddm || warn "SDDM failed"; [[ "$DRY_RUN" == false ]] && INSTALL_SUMMARY[services_enabled]=true; success "Services enabled"; }
+system_update() {
+  info "Updating system..."
+  run sudo pacman -Sy --noconfirm --needed archlinux-keyring || warn "Keyring update failed"
+  run sudo pacman -Syu --noconfirm || warn "System update failed"
+  [[ "$DRY_RUN" == false ]] && INSTALL_SUMMARY[system_updated]=true
+  success "System updated"
+}
 
-finalize() { clear; banner; [[ "$DRY_RUN" == true ]] && info "Dry-run complete — no changes made" || success "Installation complete! Reboot recommended."; }
+install_paru() {
+  command -v paru >/dev/null 2>&1 && { info "paru already installed"; return; }
+  info "Installing paru..."
+  run sudo pacman -S --noconfirm --needed base-devel git
+  local build_dir
+  build_dir=$(mktemp -d "$AUR_BUILD_BASE/paru.XXXX")
+  tmpdirs+=("$build_dir")
+  run git clone --depth 1 https://aur.archlinux.org/paru.git "$build_dir"
+  (cd "$build_dir" && run makepkg -fsri --noconfirm)
+  [[ "$DRY_RUN" == false ]] && INSTALL_SUMMARY[paru_installed]=true
+  success "paru installed"
+}
 
-main() { prepare; system_update; install_paru; install_official_packages; install_aur_packages; apply_dotfiles; configure_shell; enable_services; finalize; }
+install_official_packages() {
+  info "Installing official packages..."
+  OFFICIAL_PKG_COUNT=${#OFFICIAL_PKGS[@]}
+  run sudo pacman -S --noconfirm --needed "${OFFICIAL_PKGS[@]}" || warn "Some official packages failed"
+  run xdg-user-dirs-update || true
+  [[ "$DRY_RUN" == false ]] && INSTALL_SUMMARY[official_packages]=true
+  success "Official packages installed"
+}
+
+install_aur_packages() {
+  command -v paru >/dev/null 2>&1 || { warn "paru not available"; return; }
+  info "Installing AUR packages..."
+  AUR_PKG_COUNT=${#AUR_PKGS[@]}
+  run paru -S --noconfirm --needed "${AUR_PKGS[@]}" || warn "Some AUR packages failed"
+  run paru -Sc --noconfirm || true
+  [[ "$DRY_RUN" == false ]] && INSTALL_SUMMARY[aur_packages]=true
+  success "AUR packages installed"
+}
+
+apply_dotfiles() {
+  info "Applying dotfiles..."
+  [[ ! -d "$DOTFILES_DIR/.git" ]] && run git clone --depth 1 "$DOTFILES_REPO" "$DOTFILES_DIR" || (cd "$DOTFILES_DIR" && run git pull --ff-only --quiet || warn "Git pull failed")
+  [[ "$DRY_RUN" == false && -d "$HOME/.config" ]] && LAST_BACKUP="$HOME/.config_backup_$(date +%Y%m%d_%H%M%S)_$$" && cp -a "$HOME/.config" "$LAST_BACKUP"
+  for plugin in zsh-autosuggestions zsh-syntax-highlighting; do
+    [[ -d "$HOME/.zsh/$plugin" ]] || run git clone --depth 1 "https://github.com/zsh-users/$plugin" "$HOME/.zsh/$plugin"
+  done
+  run rsync -a "$DOTFILES_DIR/.config/" "$HOME/.config/"
+  run rsync -a "$DOTFILES_DIR/.local/" "$HOME/.local/"
+  run find "$HOME/.local/bin" -type f -exec chmod +x {} \; || true
+  [[ "$DRY_RUN" == false ]] && INSTALL_SUMMARY[dotfiles_applied]=true
+  success "Dotfiles applied"
+}
+
+configure_shell() {
+  command -v zsh >/dev/null 2>&1 || { warn "zsh not found"; return; }
+  [[ "$SHELL" == */zsh ]] && { info "Already using zsh"; return; }
+  confirm "Change default shell to zsh?" && run sudo chsh -s "$(command -v zsh)" "$USER" && [[ "$DRY_RUN" == false ]] && INSTALL_SUMMARY[shell_configured]=true && success "zsh set as default shell"
+}
+
+enable_services() {
+  run sudo systemctl enable --now NetworkManager || warn "NetworkManager failed"
+  run sudo systemctl enable sddm || warn "SDDM failed"
+  [[ "$DRY_RUN" == false ]] && INSTALL_SUMMARY[services_enabled]=true
+  success "Services enabled"
+}
+
+finalize() {
+  clear
+  banner
+  [[ "$DRY_RUN" == true ]] && info "Dry-run complete — no changes made" || success "Installation complete! Reboot recommended."
+}
+
+# -------------------- Main --------------------
+main() {
+  prepare
+  system_update
+  install_paru
+  install_official_packages
+  install_aur_packages
+  apply_dotfiles
+  configure_shell
+  enable_services
+  finalize
+}
 
 main "$@"
+
 
