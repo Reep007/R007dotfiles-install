@@ -150,21 +150,11 @@ require_tty() {
 
 # -------------------- Preflight --------------------
 prepare() {
-  # Don't exit on errors during checks - handle them explicitly
-  set +e
-  
   check_not_root
-  local root_check=$?
-  if [[ $root_check -ne 0 ]]; then
-    set -e
-    error "Root check failed"
-  fi
   
   if [[ "$CI_MODE" == false ]]; then
     require_tty
   fi
-  
-  set -e
   
   if [[ ! -f /etc/arch-release ]]; then
     error "Arch Linux only (no /etc/arch-release found)"
