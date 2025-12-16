@@ -114,9 +114,17 @@ trap cleanup EXIT ERR INT TERM
 # -------------------- Helpers --------------------
 confirm() {
   [[ "$NO_CONFIRM" == true || "$DRY_RUN" == true ]] && return 0
-  printf "${CYAN}?${NC} %s [Y/n] " "${1:-Continue?}"
-  read -r -t 60 ans || ans="y"
-  [[ "$ans" =~ ^[Nn]$ ]] && return 1 || return 0
+  local prompt="${1:-Continue?}"
+  printf "${CYAN}?${NC} %s [Y/n] " "$prompt"
+  
+  # Increase timeout and make it more visible
+  if read -r -t 60 ans; then
+    [[ "$ans" =~ ^[Nn]$ ]] && return 1 || return 0
+  else
+    echo "" # newline after timeout
+    warn "No response (timeout) - assuming No"
+    return 1
+  fi
 }
 
 banner() {
@@ -134,32 +142,49 @@ check_not_root() {
 }
 
 require_tty() {
-  if [[ ! -t 0 || ! -t 1 ]]; then
-    warn "No proper TTY detected; sudo prompts may fail. Continuing anyway."
+  # Only warn, don't fail
+  if [[ ! -t 0 ]] || [[ ! -t 1 ]]; then
+    warn "No proper TTY detected; interactive prompts may not work properly"
   fi
 }
 
 # -------------------- Preflight --------------------
 prepare() {
-  check_not_root
-  [[ "$CI_MODE" == false ]] && require_tty
+  # Don't exit on errors during checks - handle them explicitly
+  set +e
   
-  # Start logging AFTER initial checks
-  exec > >(tee -a "$LOG_FILE") 2>&1
+  check_not_root
+  local root_check=$?
+  if [[ $root_check -ne 0 ]]; then
+    set -e
+    error "Root check failed"
+  fi
+  
+  if [[ "$CI_MODE" == false ]]; then
+    require_tty
+  fi
+  
+  set -e
   
   if [[ ! -f /etc/arch-release ]]; then
     error "Arch Linux only (no /etc/arch-release found)"
   fi
   
-  exec 200>"$LOCKFILE" 2>/dev/null || error "Cannot create lockfile"
-  flock -n 200 || error "Another installer is running"
-  
   banner
   [[ "$CI_MODE" == true ]] && info "CI MODE - dry-run enforced"
   [[ "$DRY_RUN" == true ]] && info "DRY-RUN mode enabled"
-  info "Log: $LOG_FILE"
   
-  confirm "Start the rice installation?" || error "Aborted by user"
+  # Start logging
+  info "Starting installer..."
+  info "Log file: $LOG_FILE"
+  exec > >(tee -a "$LOG_FILE") 2>&1
+  
+  exec 200>"$LOCKFILE" 2>/dev/null || error "Cannot create lockfile"
+  flock -n 200 || error "Another installer is running"
+  
+  if ! confirm "Start the rice installation?"; then
+    error "Installation cancelled by user"
+  fi
   
   if [[ "$DRY_RUN" == false ]]; then
     sudo -v || warn "sudo authentication failed; some steps may fail"
