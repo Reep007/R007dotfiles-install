@@ -142,15 +142,19 @@ install_official_packages() {
 }
 
 install_aur_packages() {
-  if ! command -v paru >/dev/null 2>&1; then
-    warn "paru not available, skipping AUR packages"
-    return
-  fi
+  warn "Skipping AUR packages - install manually after dotfiles are applied"
+  return 0
   
-  info "Installing ${#AUR_PKGS[@]} AUR packages..."
-  run paru -S --noconfirm --needed "${AUR_PKGS[@]}"
-  run paru -Sc --noconfirm
-  success "AUR packages installed"
+  # Uncomment below to enable AUR packages
+  # if ! command -v paru >/dev/null 2>&1; then
+  #   warn "paru not available, skipping AUR packages"
+  #   return
+  # fi
+  # 
+  # info "Installing ${#AUR_PKGS[@]} AUR packages..."
+  # run paru -S --noconfirm --needed "${AUR_PKGS[@]}"
+  # run paru -Sc --noconfirm
+  # success "AUR packages installed"
 }
 
 apply_dotfiles() {
