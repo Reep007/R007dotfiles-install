@@ -24,8 +24,14 @@ OFFICIAL_PKGS=(
 )
 
 AUR_PKGS=(
-  brave-bin nordic-theme-git wpgtk-git themix-full-git oh-my-posh
+  brave-bin 
+  nordic-theme-git 
+  wpgtk-git 
+  oh-my-posh
 )
+
+# Removed: themix-full-git (requires Rust and is huge)
+# If you really need it, install separately with: paru -S themix-full-git
 
 # -------------------- CLI parsing --------------------
 for arg in "$@"; do
@@ -114,10 +120,10 @@ install_paru() {
     return
   fi
   
-  info "Installing paru..."
-  run sudo pacman -S --noconfirm --needed base-devel git
+  info "Installing paru and build dependencies..."
+  run sudo pacman -S --noconfirm --needed base-devel git rust
   
-  local build_dir="$AUR_BUILD_BASE/paru-build-$$"
+  local build_dir="$AUR_BUILD_BASE/paru-build-$"
   run git clone --depth 1 https://aur.archlinux.org/paru.git "$build_dir"
   
   if [[ "$DRY_RUN" == false ]]; then
@@ -150,28 +156,51 @@ install_aur_packages() {
 apply_dotfiles() {
   info "Applying dotfiles..."
   
+  # Clone or update repo
   if [[ ! -d "$DOTFILES_DIR/.git" ]]; then
+    info "Cloning dotfiles repository..."
     run git clone --depth 1 "$DOTFILES_REPO" "$DOTFILES_DIR"
   else
+    info "Updating dotfiles repository..."
     (cd "$DOTFILES_DIR" && run git pull --ff-only --quiet)
   fi
   
+  # Backup existing config
   if [[ "$DRY_RUN" == false && -d "$HOME/.config" ]]; then
     local backup="$HOME/.config_backup_$(date +%Y%m%d_%H%M%S)"
+    info "Backing up existing config to: $backup"
     cp -a "$HOME/.config" "$backup"
-    info "Config backed up to: $backup"
   fi
   
   # Install zsh plugins
+  info "Installing zsh plugins..."
   for plugin in zsh-autosuggestions zsh-syntax-highlighting; do
     if [[ ! -d "$HOME/.zsh/$plugin" ]]; then
       run git clone --depth 1 "https://github.com/zsh-users/$plugin" "$HOME/.zsh/$plugin"
     fi
   done
   
-  run rsync -a "$DOTFILES_DIR/.config/" "$HOME/.config/"
-  run rsync -a "$DOTFILES_DIR/.local/" "$HOME/.local/"
-  run find "$HOME/.local/bin" -type f -exec chmod +x {} \;
+  # Copy dotfiles with verbose output
+  info "Copying .config files..."
+  if [[ -d "$DOTFILES_DIR/.config" ]]; then
+    run cp -rv "$DOTFILES_DIR/.config/." "$HOME/.config/"
+  else
+    warn ".config directory not found in $DOTFILES_DIR"
+  fi
+  
+  info "Copying .local files..."
+  if [[ -d "$DOTFILES_DIR/.local" ]]; then
+    run cp -rv "$DOTFILES_DIR/.local/." "$HOME/.local/"
+    run find "$HOME/.local/bin" -type f -exec chmod +x {} \; 2>/dev/null || true
+  else
+    warn ".local directory not found in $DOTFILES_DIR"
+  fi
+  
+  # List what was copied
+  if [[ "$DRY_RUN" == false ]]; then
+    info "Dotfiles structure:"
+    ls -la "$DOTFILES_DIR" | head -20
+  fi
   
   success "Dotfiles applied"
 }
