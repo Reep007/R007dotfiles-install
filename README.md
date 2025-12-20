@@ -68,7 +68,15 @@ This installer automates the setup of a modern Wayland desktop environment featu
 ### 1. Download the installer
 
 ```bash
-curl -O https://raw.githubusercontent.com/YOUR_REPO/installer.sh
+curl -O https://raw.githubusercontent.com/Reep007/R7dotfiles-install/main/installer.sh
+chmod +x installer.sh
+```
+
+Or clone the repository:
+
+```bash
+git clone https://github.com/Reep007/R7dotfiles-install.git
+cd R7dotfiles-install
 chmod +x installer.sh
 ```
 
